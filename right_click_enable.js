@@ -16,7 +16,7 @@
     document.addEventListener('contextmenu', block, opts);
 
     // 選択・コピー系
-    ['copy', 'cut', 'paste', 'selectstart', 'dragstart', 'keydown'].forEach(evt => {
+    ['copy', 'cut', 'paste', 'selectstart', 'dragstart'].forEach(evt => {
         document.addEventListener(evt, block, opts);
     });
 
