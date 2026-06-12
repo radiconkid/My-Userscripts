@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ピクチャーインピクチャー (PiP) ボタン
 // @namespace    http://tampermonkey.net/
-// @version      1.0.0
+// @version      1.1.0
 // @description  再生中の動画をワンクリックでピクチャーインピクチャー表示する
 // @author       UserScript
 // @match        *://*/*
@@ -119,6 +119,27 @@
     lastRect = null;
   }
 
+  // ── ページ内で最適な動画を探す ────────────────────────
+  // 再生中 → 最大面積 → 先頭、の優先順で選ぶ
+  function findBestVideo() {
+    const videos = Array.from(document.querySelectorAll('video'));
+    if (!videos.length) return null;
+    const candidates = videos.filter(v => {
+      const r = v.getBoundingClientRect();
+      return r.width >= 80 && r.height >= 50;
+    });
+    if (!candidates.length) return videos[0];
+    // 再生中を優先
+    const playing = candidates.filter(v => !v.paused && !v.ended);
+    const pool = playing.length ? playing : candidates;
+    // 面積最大を返す
+    return pool.reduce((best, v) => {
+      const r = v.getBoundingClientRect();
+      const br = best.getBoundingClientRect();
+      return r.width * r.height > br.width * br.height ? v : best;
+    });
+  }
+
   // ── disablePictureInPicture 属性を除去 ────────────────
   function unlockVideo(video) {
     if (video.hasAttribute('disablePictureInPicture') ||
@@ -184,7 +205,10 @@
       return;
     }
 
-    const target = currentVideo || document.pictureInPictureElement;
+    // currentVideo が取れていない場合、ページ内で最適な動画を探す
+    const target = currentVideo
+      || document.pictureInPictureElement
+      || findBestVideo();
     if (!target) return;
 
     try {
